@@ -8,8 +8,10 @@ import {
   Eye,
   EyeOff,
   LockKeyhole,
+  MapPin,
   Mail,
   MoveUpRight,
+  Phone,
   Sparkles,
   UserRound,
   Check,
@@ -37,7 +39,10 @@ const books = [
 ];
 
 export default function RegisterPage() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -62,7 +67,7 @@ export default function RegisterPage() {
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/register`,
-        { email, password },
+        { email, name, phone, city, password },
         { withCredentials: true },
       );
 
@@ -112,19 +117,7 @@ export default function RegisterPage() {
       <div className="pointer-events-none absolute -left-32 top-10 h-72 w-72 rounded-full bg-[#ddc8a5]/30 blur-3xl" />
       <div className="pointer-events-none absolute -right-32 bottom-10 h-80 w-80 rounded-full bg-[#c9a47c]/20 blur-3xl" />
 
-      {/* Back button */}
-      <motion.button
-        type="button"
-        onClick={() => window.history.back()}
-        aria-label="Go back"
-        initial={{ opacity: 0, x: -15 }}
-        animate={{ opacity: 1, x: 0 }}
-        whileHover={{ scale: 1.06, x: -3 }}
-        whileTap={{ scale: 0.94 }}
-        className="absolute left-5 top-5 z-10 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 bg-white/80 shadow-sm backdrop-blur-md transition-colors hover:bg-white"
-      >
-        <ArrowLeft size={23} strokeWidth={1.5} />
-      </motion.button>
+ 
 
       <div className="relative z-[1] mx-auto grid w-full max-w-5xl items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
         {/* Left: branding and animated books */}
@@ -274,6 +267,40 @@ export default function RegisterPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Name */}
+              <motion.div
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.35, duration: 0.45 }}
+              >
+                <label
+                  htmlFor="name"
+                  className="mb-2 block text-xs font-medium text-[#594630]"
+                >
+                  Full name
+                </label>
+
+                <div className="group flex h-12 items-center gap-3 rounded-xl border border-[#ded2bf] bg-[#fdfbf6] px-4 transition-all focus-within:border-[#a87951] focus-within:ring-4 focus-within:ring-[#a87951]/10">
+                  <UserRound
+                    size={17}
+                    className="shrink-0 text-[#a18a6b] transition-colors group-focus-within:text-[#865735]"
+                    strokeWidth={1.6}
+                  />
+
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Alex Author"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-full min-w-0 flex-1 bg-transparent text-sm text-[#493522] outline-none placeholder:text-[#b6a894]"
+                  />
+                </div>
+              </motion.div>
+
               {/* Email */}
               <motion.div
                 initial={{ opacity: 0, x: 12 }}
@@ -303,6 +330,74 @@ export default function RegisterPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    className="h-full min-w-0 flex-1 bg-transparent text-sm text-[#493522] outline-none placeholder:text-[#b6a894]"
+                  />
+                </div>
+              </motion.div>
+
+              {/* Phone */}
+              <motion.div
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.45, duration: 0.45 }}
+              >
+                <label
+                  htmlFor="phone"
+                  className="mb-2 block text-xs font-medium text-[#594630]"
+                >
+                  Phone number
+                </label>
+
+                <div className="group flex h-12 items-center gap-3 rounded-xl border border-[#ded2bf] bg-[#fdfbf6] px-4 transition-all focus-within:border-[#a87951] focus-within:ring-4 focus-within:ring-[#a87951]/10">
+                  <Phone
+                    size={17}
+                    className="shrink-0 text-[#a18a6b] transition-colors group-focus-within:text-[#865735]"
+                    strokeWidth={1.6}
+                  />
+
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    autoComplete="tel"
+                    placeholder="+91-555560100"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="h-full min-w-0 flex-1 bg-transparent text-sm text-[#493522] outline-none placeholder:text-[#b6a894]"
+                  />
+                </div>
+              </motion.div>
+
+              {/* City */}
+              <motion.div
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.48, duration: 0.45 }}
+              >
+                <label
+                  htmlFor="city"
+                  className="mb-2 block text-xs font-medium text-[#594630]"
+                >
+                  City
+                </label>
+
+                <div className="group flex h-12 items-center gap-3 rounded-xl border border-[#ded2bf] bg-[#fdfbf6] px-4 transition-all focus-within:border-[#a87951] focus-within:ring-4 focus-within:ring-[#a87951]/10">
+                  <MapPin
+                    size={17}
+                    className="shrink-0 text-[#a18a6b] transition-colors group-focus-within:text-[#865735]"
+                    strokeWidth={1.6}
+                  />
+
+                  <input
+                    id="city"
+                    name="city"
+                    type="text"
+                    autoComplete="address-level2"
+                    placeholder="New York"
+                    required
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
                     className="h-full min-w-0 flex-1 bg-transparent text-sm text-[#493522] outline-none placeholder:text-[#b6a894]"
                   />
                 </div>

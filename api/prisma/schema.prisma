@@ -15,7 +15,7 @@ enum UserRole {
 enum BookStatus {
   DRAFT
   IN_PRODUCTION
-  PUBLISHED
+  PUBLISHED_LIVE
   OUT_OF_STOCK
   DISCONTINUED
 }
@@ -48,28 +48,24 @@ enum MessageVisibility {
   INTERNAL
 }
 
-enum RoyaltyTransactionType {
-  EARNING
-  PAYMENT
-  ADJUSTMENT
-}
-
 model User {
-  id       String   @id @default(cuid())
-  email    String   @unique
-  password String
-  role     UserRole @default(AUTHOR)
-  isActive Boolean  @default(true)
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  phone        String?
+  city         String?
+  password     String
+  role         UserRole @default(AUTHOR)
+  isActive     Boolean  @default(true)
+  tokenVersion Int      @default(0)
 
-  books               Book[]
-  tickets             SupportTicket[]
-  assignedTickets     SupportTicket[]      @relation("TicketAssignee")
-  messages            TicketMessage[]
-  royaltyTransactions RoyaltyTransaction[]
+  books           Book[]
+  tickets         SupportTicket[]
+  assignedTickets SupportTicket[] @relation("TicketAssignee")
+  messages        TicketMessage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  tokenVersion Int @default(0)
 
   @@index([role, isActive])
   @@map("users")
@@ -77,45 +73,33 @@ model User {
 
 model Book {
   id              String     @id @default(cuid())
-  authorId        String
+  bookId          String     @unique
   title           String
-  isbn            String?    @unique
-  genre           String?
+  isbn            String     @unique
+  genre           String
   publicationDate DateTime?
   status          BookStatus @default(DRAFT)
-  mrp             Decimal?   @db.Decimal(10, 2)
-  currency        String     @default("INR")
 
-  author              User                 @relation(fields: [authorId], references: [id], onDelete: Restrict)
-  royaltyTransactions RoyaltyTransaction[]
-  tickets             SupportTicket[]
+  mrp                   Decimal   @db.Decimal(10, 2)
+  authorRoyaltyPerCopy  Decimal   @db.Decimal(10, 2)
+  totalCopiesSold       Int       @default(0)
+  totalRoyaltyEarned    Decimal   @default(0) @db.Decimal(12, 2)
+  royaltyPaid           Decimal   @default(0) @db.Decimal(12, 2)
+  lastRoyaltyPayoutDate DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  printPartner String   @default("In-House")
+  availableOn  String[] @default([])
 
-  @@index([authorId, status])
-  @@index([title])
-}
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-model RoyaltyTransaction {
-  id          String                 @id @default(cuid())
-  authorId    String
-  bookId      String
-  type        RoyaltyTransactionType
-  amount      Decimal                @db.Decimal(12, 2)
-  currency    String                 @default("INR")
-  reference   String?
-  description String?
-  occurredAt  DateTime               @default(now())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  supportTickets SupportTicket[]
 
-  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
-  book   Book @relation(fields: [bookId], references: [id], onDelete: Restrict)
-
-  createdAt DateTime @default(now())
-
-  @@index([authorId, occurredAt])
-  @@index([bookId, occurredAt])
-  @@index([type, occurredAt])
+  @@index([authorId])
+  @@index([status])
+  @@map("books")
 }
 
 model SupportTicket {
@@ -142,6 +126,9 @@ model SupportTicket {
   aiAnalyses    TicketAIAnalysis[]
   statusHistory TicketStatusHistory[]
   attachments   TicketAttachment[]
+
+  categoryOverridden Boolean @default(false)
+  priorityOverridden Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

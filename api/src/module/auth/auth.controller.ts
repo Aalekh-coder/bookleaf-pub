@@ -34,12 +34,24 @@ export class AuthController {
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['email', 'password'],
+      required: ['email', 'name', 'phone', 'city', 'password'],
       properties: {
         email: {
           type: 'string',
           format: 'email',
           example: 'author@example.com',
+        },
+        name: {
+          type: 'string',
+          example: 'Alex Author',
+        },
+        phone: {
+          type: 'string',
+          example: '+1-555-0100',
+        },
+        city: {
+          type: 'string',
+          example: 'New York',
         },
         password: {
           type: 'string',
@@ -58,6 +70,9 @@ export class AuthController {
         user: {
           id: 'clx1234567890',
           email: 'author@example.com',
+          name: 'Alex Author',
+          phone: '+1-555-0100',
+          city: 'New York',
           role: 'AUTHOR',
         },
         accessToken: 'JWT access token',
@@ -78,7 +93,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 15 * 60 * 1000,
+      maxAge: 60 * 60 * 1000,
     });
 
     return result;
@@ -112,6 +127,7 @@ export class AuthController {
         user: {
           id: 'clx1234567890',
           email: 'author@example.com',
+          name: 'Alex Author',
           role: 'AUTHOR',
         },
         accessToken: 'JWT access token',
@@ -130,7 +146,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 15 * 60 * 1000,
+      maxAge: 60 * 60 * 1000,
     });
 
     return {
@@ -171,12 +187,18 @@ export class AuthController {
       example: {
         id: 'clx1234567890',
         email: 'author@example.com',
+        name: 'Alex Author',
         role: 'AUTHOR',
       },
     },
   })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid access token' })
-  me(@Req() req: { user: { id: string; email: string; role: string } }) {
+  me(
+    @Req()
+    req: {
+      user: { id: string; email: string; name: string; role: string };
+    },
+  ) {
     return req.user;
   }
 }

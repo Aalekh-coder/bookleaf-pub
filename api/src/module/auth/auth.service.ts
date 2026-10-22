@@ -26,11 +26,17 @@ export class AuthService {
       const user = await this.prisma.user.create({
         data: {
           email,
+          name: dto.name,
+          phone: dto.phone,
+          city: dto.city,
           password,
         },
         select: {
           id: true,
           email: true,
+          name: true,
+          phone: true,
+          city: true,
           role: true,
           tokenVersion: true,
         },
@@ -41,6 +47,9 @@ export class AuthService {
         user: {
           id: user.id,
           email: user.email,
+          name: user.name,
+          phone: user.phone,
+          city: user.city,
           role: user.role,
         },
         accessToken: await this.signToken(user),
@@ -82,6 +91,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name,
         role: user.role,
       },
       accessToken: await this.signToken(user),
@@ -104,12 +114,14 @@ export class AuthService {
   private signToken(user: {
     id: string;
     email: string;
+    name: string;
     role: string;
     tokenVersion: number;
   }) {
     return this.jwtService.signAsync({
       sub: user.id,
       email: user.email,
+      name: user.name,
       role: user.role,
       tokenVersion: user.tokenVersion,
     });

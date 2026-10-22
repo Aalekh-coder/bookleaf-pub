@@ -5,9 +5,10 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './module/auth/auth.module.js';
 import { UsersService } from './module/users/users.service.js';
 import { UsersModule } from './module/users/users.module.js';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { PassportModule } from '@nestjs/passport';
-import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule } from '@nestjs/config';
+import { BookModule } from './module/book/book.module.js';
+import { TicketsModule } from './module/tickets/tickets.module.js';
+import { AiModule } from './module/ai/ai.module.js';
 
 @Module({
   controllers: [AppController],
@@ -20,6 +21,9 @@ import { JwtModule } from '@nestjs/jwt';
     PrismaModule,
     AuthModule,
     UsersModule,
+    BookModule,
+    TicketsModule,
+    AiModule,
   ],
 })
 export class AppModule {}

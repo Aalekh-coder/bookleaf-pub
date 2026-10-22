@@ -2,7 +2,7 @@
 CREATE TYPE "UserRole" AS ENUM ('AUTHOR', 'ADMIN');
 
 -- CreateEnum
-CREATE TYPE "BookStatus" AS ENUM ('DRAFT', 'IN_PRODUCTION', 'PUBLISHED', 'OUT_OF_STOCK', 'DISCONTINUED');
+CREATE TYPE "BookStatus" AS ENUM ('DRAFT', 'IN_PRODUCTION', 'PUBLISHED_LIVE', 'OUT_OF_STOCK', 'DISCONTINUED');
 
 -- CreateEnum
 CREATE TYPE "TicketStatus" AS ENUM ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED');
@@ -16,53 +16,45 @@ CREATE TYPE "TicketPriority" AS ENUM ('CRITICAL', 'HIGH', 'MEDIUM', 'LOW');
 -- CreateEnum
 CREATE TYPE "MessageVisibility" AS ENUM ('PUBLIC', 'INTERNAL');
 
--- CreateEnum
-CREATE TYPE "RoyaltyTransactionType" AS ENUM ('EARNING', 'PAYMENT', 'ADJUSTMENT');
-
 -- CreateTable
-CREATE TABLE "User" (
+CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "phone" TEXT,
+    "city" TEXT,
     "password" TEXT NOT NULL,
     "role" "UserRole" NOT NULL DEFAULT 'AUTHOR',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "tokenVersion" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "Book" (
+CREATE TABLE "books" (
     "id" TEXT NOT NULL,
-    "authorId" TEXT NOT NULL,
+    "bookId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
-    "isbn" TEXT,
-    "genre" TEXT,
+    "isbn" TEXT NOT NULL,
+    "genre" TEXT NOT NULL,
     "publicationDate" TIMESTAMP(3),
     "status" "BookStatus" NOT NULL DEFAULT 'DRAFT',
-    "mrp" DECIMAL(10,2),
-    "currency" TEXT NOT NULL DEFAULT 'INR',
+    "mrp" DECIMAL(10,2) NOT NULL,
+    "authorRoyaltyPerCopy" DECIMAL(10,2) NOT NULL,
+    "totalCopiesSold" INTEGER NOT NULL DEFAULT 0,
+    "totalRoyaltyEarned" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "royaltyPaid" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "lastRoyaltyPayoutDate" TIMESTAMP(3),
+    "printPartner" TEXT NOT NULL DEFAULT 'In-House',
+    "availableOn" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "authorId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Book_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "RoyaltyTransaction" (
-    "id" TEXT NOT NULL,
-    "authorId" TEXT NOT NULL,
-    "bookId" TEXT NOT NULL,
-    "type" "RoyaltyTransactionType" NOT NULL,
-    "amount" DECIMAL(12,2) NOT NULL,
-    "currency" TEXT NOT NULL DEFAULT 'INR',
-    "reference" TEXT,
-    "description" TEXT,
-    "occurredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "RoyaltyTransaction_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "books_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -144,28 +136,22 @@ CREATE TABLE "TicketAttachment" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE INDEX "User_role_isActive_idx" ON "User"("role", "isActive");
+CREATE INDEX "users_role_isActive_idx" ON "users"("role", "isActive");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Book_isbn_key" ON "Book"("isbn");
+CREATE UNIQUE INDEX "books_bookId_key" ON "books"("bookId");
 
 -- CreateIndex
-CREATE INDEX "Book_authorId_status_idx" ON "Book"("authorId", "status");
+CREATE UNIQUE INDEX "books_isbn_key" ON "books"("isbn");
 
 -- CreateIndex
-CREATE INDEX "Book_title_idx" ON "Book"("title");
+CREATE INDEX "books_authorId_idx" ON "books"("authorId");
 
 -- CreateIndex
-CREATE INDEX "RoyaltyTransaction_authorId_occurredAt_idx" ON "RoyaltyTransaction"("authorId", "occurredAt");
-
--- CreateIndex
-CREATE INDEX "RoyaltyTransaction_bookId_occurredAt_idx" ON "RoyaltyTransaction"("bookId", "occurredAt");
-
--- CreateIndex
-CREATE INDEX "RoyaltyTransaction_type_occurredAt_idx" ON "RoyaltyTransaction"("type", "occurredAt");
+CREATE INDEX "books_status_idx" ON "books"("status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SupportTicket_ticketNumber_key" ON "SupportTicket"("ticketNumber");
@@ -198,28 +184,22 @@ CREATE INDEX "TicketStatusHistory_ticketId_createdAt_idx" ON "TicketStatusHistor
 CREATE INDEX "TicketAttachment_ticketId_idx" ON "TicketAttachment"("ticketId");
 
 -- AddForeignKey
-ALTER TABLE "Book" ADD CONSTRAINT "Book_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "books" ADD CONSTRAINT "books_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RoyaltyTransaction" ADD CONSTRAINT "RoyaltyTransaction_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "SupportTicket" ADD CONSTRAINT "SupportTicket_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RoyaltyTransaction" ADD CONSTRAINT "RoyaltyTransaction_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "Book"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "SupportTicket" ADD CONSTRAINT "SupportTicket_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "books"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "SupportTicket" ADD CONSTRAINT "SupportTicket_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "SupportTicket" ADD CONSTRAINT "SupportTicket_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "Book"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "SupportTicket" ADD CONSTRAINT "SupportTicket_assigneeId_fkey" FOREIGN KEY ("assigneeId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "SupportTicket" ADD CONSTRAINT "SupportTicket_assigneeId_fkey" FOREIGN KEY ("assigneeId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TicketMessage" ADD CONSTRAINT "TicketMessage_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "SupportTicket"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TicketMessage" ADD CONSTRAINT "TicketMessage_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "TicketMessage" ADD CONSTRAINT "TicketMessage_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TicketAIAnalysis" ADD CONSTRAINT "TicketAIAnalysis_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "SupportTicket"("id") ON DELETE CASCADE ON UPDATE CASCADE;

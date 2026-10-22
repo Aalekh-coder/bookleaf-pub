@@ -5,6 +5,10 @@ export function proxy(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   const isAdminDashboard = pathname.startsWith(
     "/admin-dashboard"
   );
@@ -29,6 +33,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/admin-dashboard/:path*",
     "/author-dashboard/:path*",
   ],

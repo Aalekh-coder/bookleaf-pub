@@ -105,18 +105,7 @@ async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
       <div className="pointer-events-none absolute -left-32 top-10 h-72 w-72 rounded-full bg-[#ddc8a5]/30 blur-3xl" />
       <div className="pointer-events-none absolute -right-32 bottom-10 h-80 w-80 rounded-full bg-[#c9a47c]/20 blur-3xl" />
 
-      <motion.button
-        type="button"
-        onClick={() => window.history.back()}
-        aria-label="Go back"
-        initial={{ opacity: 0, x: -15 }}
-        animate={{ opacity: 1, x: 0 }}
-        whileHover={{ scale: 1.06, x: -3 }}
-        whileTap={{ scale: 0.94 }}
-        className="absolute left-5 top-5 z-10 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 bg-white/80 shadow-sm backdrop-blur-md transition-colors hover:bg-white"
-      >
-        <ArrowLeft size={23} strokeWidth={1.5} />
-      </motion.button>
+     
 
       <div className="relative z-[1] mx-auto grid w-full max-w-5xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
         {/* Left: editorial branding */}
