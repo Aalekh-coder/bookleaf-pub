@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Headset,
   ClipboardList,
@@ -9,8 +9,10 @@ import {
   Menu,
   X,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 const navigation = [
   {
@@ -32,6 +34,46 @@ export default function AdminDashboardLayout({
 }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authorName, setAuthorName] = useState("Author");
+  const router = useRouter();
+
+  async function handleLogout() {
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/logout`,
+        {},
+        { withCredentials: true },
+      );
+      router.replace("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadAuthorName() {
+      try {
+        const response = await axios.get<{ name: string }>(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`,
+          { withCredentials: true },
+        );
+
+        if (isMounted && response.data.name) {
+          setAuthorName(response.data.name);
+        }
+      } catch (error) {
+        console.error("Failed to load author profile:", error);
+      }
+    }
+
+    void loadAuthorName();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const isActive = (href: string) =>
     href === "/admin-dashboard"
@@ -56,10 +98,7 @@ export default function AdminDashboardLayout({
         }`}
       >
         <div className="flex h-20 items-center justify-between border-b border-[#eeeae2] px-6">
-          <Link
-            href="/admin-dashboard"
-            className="flex items-center gap-3"
-          >
+          <Link href="/admin-dashboard" className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#79583c] text-white">
               <ShieldCheck size={22} />
             </div>
@@ -67,9 +106,7 @@ export default function AdminDashboardLayout({
               <span className="block font-serif text-xl font-bold text-[#79583c]">
                 BookLeaf
               </span>
-              <span className="text-xs text-[#948b7e]">
-                Admin Portal
-              </span>
+              <span className="text-xs text-[#948b7e]">Admin Portal</span>
             </div>
           </Link>
 
@@ -105,9 +142,7 @@ export default function AdminDashboardLayout({
               >
                 <Icon size={19} strokeWidth={1.8} />
                 <span>{label}</span>
-                {active && (
-                  <ChevronRight size={16} className="ml-auto" />
-                )}
+                {active && <ChevronRight size={16} className="ml-auto" />}
               </Link>
             );
           })}
@@ -119,10 +154,20 @@ export default function AdminDashboardLayout({
               A
             </div>
             <div>
-              <p className="text-sm font-semibold">Administrator</p>
+              <p className="capitalize text-sm font-semibold">
+                {authorName || null}
+              </p>
               <p className="text-xs text-[#948b7e]">Admin account</p>
             </div>
           </div>
+
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-[#8b5148] transition hover:bg-[#fbefed]"
+          >
+            <LogOut size={18} />
+            Log out
+          </button>
         </div>
       </aside>
 
@@ -141,8 +186,8 @@ export default function AdminDashboardLayout({
 
             <div>
               <h1 className="font-serif text-lg font-semibold sm:text-xl">
-                {navigation.find((item) => isActive(item.href))
-                  ?.label ?? "Admin Workspace"}
+                {navigation.find((item) => isActive(item.href))?.label ??
+                  "Admin Workspace"}
               </h1>
               <p className="hidden text-xs text-[#948b7e] sm:block">
                 Manage and monitor author support tickets
@@ -155,7 +200,9 @@ export default function AdminDashboardLayout({
               <ShieldCheck size={20} />
             </div>
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold">Admin</p>
+              <p className=" capitalize text-sm font-semibold">
+                {authorName || null}
+              </p>
               <p className="text-xs text-[#948b7e]">Support operations</p>
             </div>
           </div>

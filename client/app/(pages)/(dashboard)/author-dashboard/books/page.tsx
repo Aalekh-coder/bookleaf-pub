@@ -34,6 +34,7 @@ type Book = {
   authorId: string;
   createdAt: string;
   updatedAt: string;
+  royalty_pending: number;
 };
 
 type BooksResponse = {
@@ -136,6 +137,7 @@ export default function AuthorBooksPage() {
     0,
   );
 
+  console.log(books, "books");
   return (
     <div className="mx-auto max-w-7xl space-y-7">
       {/* Page heading */}
@@ -301,15 +303,7 @@ export default function AuthorBooksPage() {
                 : "Try changing your search or status filter."}
             </p>
 
-            {books.length === 0 && (
-              <Link
-                href="/author-dashboard/books/create"
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#79583c] px-5 py-3 text-sm font-medium text-white hover:bg-[#62442d]"
-              >
-                <Plus size={17} />
-                Create your first book
-              </Link>
-            )}
+           
           </div>
         ) : (
           <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-3">
@@ -378,6 +372,18 @@ export default function AuthorBooksPage() {
                       )}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-[#948b7e]">Royalty Paid</span>
+                    <span className="font-medium">
+                      {Number(book.royaltyPaid || 0).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-[#948b7e]">Royalty Pending</span>
+                    <span className="font-medium">
+                      {Number(book.royalty_pending || 0).toLocaleString("en-IN")}
+                    </span>
+                  </div>
 
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="text-[#948b7e]">Royalty earned</span>
@@ -385,6 +391,17 @@ export default function AuthorBooksPage() {
                       {formatCurrency(Number(book.totalRoyaltyEarned || 0))}
                     </span>
                   </div>
+
+                  {book?.lastRoyaltyPayoutDate ? (
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-[#948b7e]">
+                        Last Royalty Payout Date
+                      </span>
+                      <span>
+                        Publication: {formatDate(book.lastRoyaltyPayoutDate)}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="mt-5 flex items-center gap-2 border-t border-[#eeeae2] pt-4 text-xs text-[#948b7e]">

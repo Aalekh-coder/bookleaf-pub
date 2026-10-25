@@ -67,7 +67,7 @@ export class BooksService {
           publicationDate: createBookDto.publicationDate
             ? new Date(createBookDto.publicationDate)
             : null,
-          status: createBookDto.status ?? 'DRAFT',
+          status: createBookDto.status ?? 'PUBLISHED_LIVE',
           mrp: createBookDto.mrp,
           authorRoyaltyPerCopy: createBookDto.authorRoyaltyPerCopy,
 

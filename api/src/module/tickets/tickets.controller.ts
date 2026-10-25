@@ -7,6 +7,7 @@ import {
   UseGuards,
   Get,
   Query,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,6 +19,9 @@ import {
   ApiNotFoundResponse,
   ApiCookieAuth,
   ApiOkResponse,
+  ApiResponse,
+  ApiBody,
+  ApiParam,
 } from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
@@ -78,5 +82,27 @@ export class TicketsController {
     return this.ticketsService.getMyTickets(authorId, query);
   }
 
-  
+
+  @Get(":id/conversation")
+@ApiOperation({
+  summary: "Get my ticket conversation",
+  description:
+    "Returns the ticket and its public messages for the authenticated author.",
+})
+@ApiParam({
+  name: "id",
+  description: "Support ticket ID",
+})
+@ApiOkResponse({
+  description: "Ticket conversation retrieved successfully.",
+})
+async getMyTicketConversation(
+  @Param("id") id: string,
+  @GetUser("id") authorId: string,
+) {
+  return this.ticketsService.ticketByIdForAuthor(
+    id,
+    authorId,
+  );
+}
 }

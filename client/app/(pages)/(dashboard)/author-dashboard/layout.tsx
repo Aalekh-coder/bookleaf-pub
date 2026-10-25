@@ -7,8 +7,6 @@ import {
   LayoutDashboard,
   BookOpen,
   Headset,
-  UserRound,
-  Settings,
   LogOut,
   Menu,
   X,
@@ -32,17 +30,7 @@ const navigation = [
     name: "Support Tickets",
     href: "/author-dashboard/support-tickets",
     icon: Headset,
-  },
-  {
-    name: "My Profile",
-    href: "/author-dashboard/profile",
-    icon: UserRound,
-  },
-  {
-    name: "Settings",
-    href: "/author-dashboard/settings",
-    icon: Settings,
-  },
+  }
 ];
 
 export default function AuthorDashboardLayout({

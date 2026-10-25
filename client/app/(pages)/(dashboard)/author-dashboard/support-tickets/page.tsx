@@ -13,10 +13,12 @@ import {
   Headset,
   LoaderCircle,
   MessageCircle,
+  Paperclip,
   Plus,
   RefreshCw,
   X,
 } from "lucide-react";
+import Link from "next/link";
 
 type SupportTicket = {
   id: string;
@@ -51,11 +53,28 @@ type BookOption = {
   title: string;
 };
 
+type TicketCategory =
+  | "ROYALTY_PAYMENTS"
+  | "ISBN_METADATA"
+  | "PRINTING_QUALITY"
+  | "DISTRIBUTION_AVAILABILITY"
+  | "BOOK_STATUS_PRODUCTION"
+  | "GENERAL_INQUIRY";
+
 type BooksResponse = {
   data: BookOption[];
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+
+const ticketCategories: TicketCategory[] = [
+  "ROYALTY_PAYMENTS",
+  "ISBN_METADATA",
+  "PRINTING_QUALITY",
+  "DISTRIBUTION_AVAILABILITY",
+  "BOOK_STATUS_PRODUCTION",
+  "GENERAL_INQUIRY",
+];
 
 const statusStyles: Record<string, string> = {
   OPEN: "bg-amber-50 text-amber-700 ring-amber-200",
@@ -317,7 +336,7 @@ export default function SupportTicketsPage() {
                 key={ticket.id}
                 className="p-5 transition hover:bg-[#fffdf9] sm:p-6"
               >
-                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                <Link href={`/author-dashboard/support-tickets/${ticket.id}`} className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                   <div className="min-w-0">
                     <div className="mb-2 flex flex-wrap items-center gap-2">
                       <span
@@ -366,7 +385,7 @@ export default function SupportTicketsPage() {
                       {ticket.messages.length === 1 ? "reply" : "replies"}
                     </p>
                   </div>
-                </div>
+                </Link>
               </article>
             ))}
           </div>
@@ -439,8 +458,10 @@ function RaiseTicketForm({
   const [booksLoading, setBooksLoading] = useState(true);
   const [bookError, setBookError] = useState("");
   const [bookId, setBookId] = useState("");
+  const [category, setCategory] = useState<TicketCategory | "">("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -483,6 +504,7 @@ function RaiseTicketForm({
         `${API_URL}/api/v1/tickets`,
         {
           bookId,
+          category,
           subject: subject.trim(),
           description: description.trim(),
         },
@@ -599,6 +621,34 @@ function RaiseTicketForm({
 
           <div>
             <label
+              htmlFor="ticket-category"
+              className="mb-2 block text-sm font-medium text-[#51483e]"
+            >
+              Category
+               <span className="text-[#a65a4c]">*</span>
+            </label>
+            <select
+              id="ticket-category"
+              value={category}
+              onChange={(event) =>
+                setCategory(event.target.value as TicketCategory | "")
+              }
+              required
+              className="w-full rounded-xl border border-[#e9e5dc] bg-white px-3 py-3 text-sm text-[#292820] outline-none transition focus:border-[#a98a6e] focus:ring-2 focus:ring-[#79583c]/15"
+            >
+              <option value="" disabled>
+                Select a category
+              </option>
+              {ticketCategories.map((ticketCategory) => (
+                <option key={ticketCategory} value={ticketCategory}>
+                  {formatLabel(ticketCategory)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label
               htmlFor="ticket-subject"
               className="mb-2 block text-sm font-medium text-[#51483e]"
             >
@@ -632,6 +682,53 @@ function RaiseTicketForm({
               placeholder="Share the details of your request"
               className="w-full resize-y rounded-xl border border-[#e9e5dc] bg-white px-3 py-3 text-sm outline-none transition placeholder:text-[#a39b8d] focus:border-[#a98a6e] focus:ring-2 focus:ring-[#79583c]/15"
             />
+          </div>
+
+          <div>
+            <label
+              htmlFor="ticket-attachments"
+              className="mb-2 block text-sm font-medium text-[#51483e]"
+            >
+              Attachments <span className="font-normal text-[#948b7e]">(optional)</span>
+            </label>
+            <label
+              htmlFor="ticket-attachments"
+              className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[#d8cfc1] bg-[#fcfaf7] px-4 py-4 transition hover:border-[#a98a6e] hover:bg-[#f8f5ef] focus-within:border-[#a98a6e] focus-within:ring-2 focus-within:ring-[#79583c]/15"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f2e8dc] text-[#79583c]">
+                <Paperclip size={19} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-[#51483e]">
+                  Choose files to attach
+                </span>
+                <span className="mt-0.5 block text-xs text-[#948b7e]">
+                  Preview only — files will not be sent with this ticket.
+                </span>
+              </span>
+              <input
+                id="ticket-attachments"
+                type="file"
+                multiple
+                onChange={(event) =>
+                  setAttachments(Array.from(event.target.files ?? []))
+                }
+                className="sr-only"
+              />
+            </label>
+            {attachments.length > 0 && (
+              <ul className="mt-2 space-y-1.5" aria-label="Selected attachments">
+                {attachments.map((file, index) => (
+                  <li
+                    key={`${file.name}-${index}`}
+                    className="flex items-center gap-2 text-xs text-[#716b61]"
+                  >
+                    <Paperclip size={13} className="shrink-0 text-[#948b7e]" />
+                    <span className="truncate">{file.name}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {submitError && (

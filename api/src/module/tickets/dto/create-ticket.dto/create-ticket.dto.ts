@@ -3,7 +3,9 @@ import {
   IsNotEmpty,
   IsOptional,
   MaxLength,
+  IsEnum,
 } from 'class-validator';
+import { TicketCategory } from '@prisma/client';
 import {
   ApiProperty,
   ApiPropertyOptional,
@@ -40,4 +42,9 @@ export class CreateTicketDto {
   @IsNotEmpty()
   @MaxLength(5000)
   description: string;
+
+  @ApiPropertyOptional({ enum: TicketCategory })
+  @IsOptional()
+  @IsEnum(TicketCategory)
+  category?: TicketCategory;
 }

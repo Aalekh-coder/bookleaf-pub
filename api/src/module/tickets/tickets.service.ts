@@ -17,10 +17,15 @@ import {
 import { QueryMyTicketsDto } from './dto/query-my-tickets.dto/query-my-tickets.dto.js';
 import { QueryAdminTicketsDto } from './dto/query-admin-tickets.dto/query-admin-tickets.dto.js';
 import { UpdateTicketDto } from './dto/update-ticket.dto/update-ticket.dto.js';
+import { AiService } from '../ai/ai.service.js';
+import { UpdateTicketClassificationDto } from './dto/update-ticket-classification.dto.ts/update-ticket-classification.dto.js';
 
 @Injectable()
 export class TicketsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly aiService: AiService,
+  ) {}
 
   async create(createTicketDto: CreateTicketDto, authorId: string) {
     const author = await this.prisma.user.findFirst({
@@ -61,8 +66,9 @@ export class TicketsService {
 
           authorId,
           status: TicketStatus.OPEN,
-          category: TicketCategory.GENERAL_INQUIRY,
+          category: createTicketDto.category ?? TicketCategory.GENERAL_INQUIRY,
           priority: TicketPriority.MEDIUM,
+          categoryOverridden: createTicketDto.category !== undefined,
 
           statusHistory: {
             create: {
@@ -85,9 +91,33 @@ export class TicketsService {
         },
       });
 
+      const aiClassification = this.aiService
+        .classifyAndSave(ticket.id)
+        .catch((error: unknown) => {
+          const message =
+            error instanceof Error ? error.message : 'Unknown error';
+
+          console.error(
+            `AI classification failed for ticket ${ticket.id}: ${message}`,
+          );
+        });
+
+      const responseDraft = this.aiService
+        .classifyAndDraft(ticket.id)
+        .catch((error: unknown) => {
+          const message =
+            error instanceof Error ? error.message : 'Unknown error';
+
+          console.error(
+            `AI processing failed for ticket ${ticket.id}: ${message}`,
+          );
+        });
+
       return {
         message: 'Support ticket created successfully',
         data: ticket,
+        aiClassification,
+        responseDraft,
       };
     } catch (error) {
       if (
@@ -201,6 +231,53 @@ export class TicketsService {
   async ticketById(id: string) {
     const ticket = await this.prisma.supportTicket.findUnique({
       where: { id },
+      include: {
+        aiAnalyses: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+      },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Support ticket not found');
+    }
+
+    const { aiAnalyses, ...ticketDetails } = ticket;
+
+    return {
+      message: 'Support ticket retrieved successfully',
+      data: {
+        ...ticketDetails,
+        ticketAIAnalysis: aiAnalyses[0] ?? null,
+      },
+    };
+  }
+
+  async ticketByIdForAuthor(id: string, authorId: string) {
+    const ticket = await this.prisma.supportTicket.findFirst({
+      where: {
+        id,
+        authorId,
+      },
+      include: {
+        messages: {
+          where: {
+            visibility: 'PUBLIC',
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+          select: {
+            id: true,
+            senderId: true,
+            body: true,
+            createdAt: true,
+          },
+        },
+      },
     });
 
     if (!ticket) {
@@ -208,7 +285,7 @@ export class TicketsService {
     }
 
     return {
-      message: 'Support ticket retrieved successfully',
+      message: 'Support ticket conversation retrieved successfully',
       data: ticket,
     };
   }
@@ -456,6 +533,124 @@ export class TicketsService {
     return {
       message: 'Support ticket updated successfully',
       data: updatedTicket,
+    };
+  }
+
+  async sendReply(
+    ticketId: string,
+    adminId: string,
+    body: string,
+    analysisId?: string,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const ticket = await tx.supportTicket.findUnique({
+        where: { id: ticketId },
+        select: { id: true, status: true },
+      });
+
+      if (!ticket) {
+        throw new NotFoundException('Support ticket not found');
+      }
+
+      if (ticket.status === 'CLOSED') {
+        throw new ConflictException('Cannot reply to a closed ticket');
+      }
+
+      if (analysisId) {
+        const analysis = await tx.ticketAIAnalysis.findFirst({
+          where: {
+            id: analysisId,
+            ticketId,
+          },
+          select: {
+            id: true,
+            sentAt: true,
+          },
+        });
+
+        if (!analysis) {
+          throw new NotFoundException('AI analysis not found for this ticket');
+        }
+
+        const claimed = await tx.ticketAIAnalysis.updateMany({
+          where: {
+            id: analysisId,
+            ticketId,
+            sentAt: null,
+          },
+          data: {
+            sentAt: new Date(),
+          },
+        });
+
+        if (claimed.count !== 1) {
+          throw new ConflictException('This AI draft has already been sent');
+        }
+      }
+
+      const message = await tx.ticketMessage.create({
+        data: {
+          ticketId,
+          senderId: adminId,
+          body,
+          visibility: 'PUBLIC',
+        },
+      });
+
+      return {
+        message: 'Reply sent successfully',
+        data: message,
+      };
+    });
+  }
+
+  async updateClassification(
+    ticketId: string,
+    dto: UpdateTicketClassificationDto,
+    adminId: string,
+  ) {
+    if (dto.category === undefined && dto.priority === undefined) {
+      throw new BadRequestException('Provide a category, a priority, or both');
+    }
+
+    const existingTicket = await this.prisma.supportTicket.findUnique({
+      where: { id: ticketId },
+      select: { id: true },
+    });
+
+    if (!existingTicket) {
+      throw new NotFoundException('Support ticket not found');
+    }
+
+    const data = {
+      ...(dto.category !== undefined && {
+        category: dto.category,
+        categoryOverridden: true,
+      }),
+      ...(dto.priority !== undefined && {
+        priority: dto.priority,
+        priorityOverridden: true,
+      }),
+    };
+
+    const ticket = await this.prisma.supportTicket.update({
+      where: { id: ticketId },
+      data,
+      select: {
+        id: true,
+        ticketNumber: true,
+        subject: true,
+        category: true,
+        priority: true,
+        categoryOverridden: true,
+        priorityOverridden: true,
+        updatedAt: true,
+      },
+    });
+
+    return {
+      message: 'Ticket classification updated successfully',
+      data: ticket,
     };
   }
 }

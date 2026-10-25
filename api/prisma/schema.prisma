@@ -43,6 +43,13 @@ enum TicketPriority {
   LOW
 }
 
+enum AIProcessingStatus {
+  PENDING
+  DONE
+  FAILED
+  COMPLETED
+}
+
 enum MessageVisibility {
   PUBLIC
   INTERNAL
@@ -110,7 +117,7 @@ model SupportTicket {
   assigneeId   String?
 
   subject     String
-  description String
+  description String         @db.Text
   status      TicketStatus   @default(OPEN)
   category    TicketCategory @default(GENERAL_INQUIRY)
   priority    TicketPriority @default(MEDIUM)
@@ -157,19 +164,20 @@ model TicketMessage {
 }
 
 model TicketAIAnalysis {
-  id               String         @id @default(cuid())
+  id               String             @id @default(cuid())
   ticketId         String
   model            String
   promptVersion    String
   category         TicketCategory
   priority         TicketPriority
-  confidence       Decimal?       @db.Decimal(5, 4)
-  draftResponse    String?        @db.Text
+  confidence       Decimal?           @db.Decimal(5, 4)
+  draftResponse    String?            @db.Text
+  sentAt DateTime?
   inputTokens      Int?
   outputTokens     Int?
-  processingStatus String         @default("COMPLETED")
+  processingStatus AIProcessingStatus @default(PENDING)
   errorMessage     String?
-  createdAt        DateTime       @default(now())
+  createdAt        DateTime           @default(now())
 
   ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
